@@ -1,19 +1,22 @@
 import pandas as pd
-import sqlalchemy as db
-from transform import df_chunk
 
-# Driver name corrected to postgresql+psycopg2
-target_engine = db.create_engine(
-    "postgresql+psycopg2://postgres:123456@localhost:5432/postgres"
-)
 
-df_chunk.to_sql(
-    "transformed_breast_cancer",
-    con=target_engine,
-    if_exists="append",
-    index=False,
-)
-
-print("Data loaded into target database successfully!")
-test=pd.read_sql("SELECT * FROM transformed_breast_cancer LIMIT 5", con=target_engine)
-print(test)
+def load_chunk(
+    dataframe: pd.DataFrame,
+    target_engine,
+    if_exists: str = "append",
+    chunksize: int = 500,
+) -> int:
+    """Load one transformed chunk inside a database transaction."""
+    if dataframe.empty:
+        return 0
+    with target_engine.begin() as connection:
+        dataframe.to_sql(
+            "transformed_breast_cancer",
+            con=connection,
+            if_exists=if_exists,
+            index=False,
+            chunksize=chunksize,
+            method="multi",
+        )
+    return len(dataframe)
