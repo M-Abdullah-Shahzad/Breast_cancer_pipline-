@@ -1,25 +1,97 @@
-## Breast Cancer Data Pipeline: MySQL to PostgreSQL ETL
+# Breast Cancer Dataset ETL — MySQL to PostgreSQL
 
-An automated Extract, Transform, and Load (ETL) pipeline engineered to process and migrate breast cancer datasets from a source MySQL database to a destination PostgreSQL database. The architecture utilizes Python to implement memory-efficient data chunking and pagination during extraction, ensuring reliable performance over large volumes of data.
+A Python ETL project that reads a breast-cancer dataset from MySQL in chunks, normalizes and enriches each chunk, and loads the transformed records into PostgreSQL. It also includes SQL analysis queries for the source table.
 
-## System Architecture and Workflow
+This repository implements data movement and descriptive SQL analysis only. It does not train a diagnostic model and must not be used for clinical decisions.
 
-* **Extract (MySQL):** Connects to the source MySQL database and reads records incrementally using automated pagination and chunking (`pagination.py`). This prevents memory overload and ensures stable data retrieval.
-* **Transform (Python):** Processes the raw data chunks in memory (`transform.py`), applying data cleaning, normalization, and structural modifications required for downstream analytics.
-* **Load (PostgreSQL):** Establishes a secure connection to the target PostgreSQL database and writes the transformed data chunks into the destination schema (`load.py`).
-
-## Project Structure
+## ETL flow
 
 ```text
-Breast_cancer/
-│
-├── task/
-│   ├── main.py          # Application entry point orchestrating the ETL workflow
-│   ├── pagination.py    # MySQL database connection, query pagination, and chunking logic
-│   ├── transform.py     # Data cleaning, type casting, and schema transformation rules
-│   ├── load.py          # PostgreSQL database connection and batch insertion logic
-│   ├── test.py          # Automated test suite for database connections and module integrity
-│   └── pyproject.toml   # Project configuration and dependency management
-│
-├── .gitignore           # Specifies intentionally untracked files to ignore
-└── README.md            # Project documentation
+MySQL: breast_cancer
+        |
+        v
+pagination.py — SELECT * in bounded chunks
+        |
+        v
+transform.py — normalize columns and derive age_group / is_high_risk
+        |
+        v
+load.py — transactional PostgreSQL chunk load
+        |
+        v
+PostgreSQL: transformed_breast_cancer
+```
+
+## Requirements
+
+- Python 3.12
+- MySQL database with the source table
+- PostgreSQL database with permission to create and write the target table
+
+## Setup
+
+From the repository root:
+
+```bash
+python -m venv .venv
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+# macOS / Linux
+source .venv/bin/activate
+
+pip install -e task
+```
+
+Copy `.env.example` to `.env` and configure:
+
+- `SOURCE_DATABASE_URL` — SQLAlchemy MySQL URL, for example using the PyMySQL driver
+- `TARGET_DATABASE_URL` — SQLAlchemy PostgreSQL URL
+
+Never commit a populated .env file or real database credentials.
+
+## Run the ETL
+
+```bash
+python task/etl_pipeline.py
+```
+
+The pipeline reads all rows from the source table in chunks of 100, transforms each chunk, and loads the first chunk with table replacement followed by append operations. The source and target engines are disposed when the run completes.
+
+## Run the SQL analysis
+
+```bash
+python task/main.py
+```
+
+This executes the three descriptive SQL queries against the MySQL source table.
+
+## Verify source and target
+
+```bash
+python task/test.py
+```
+
+This prints row counts and small samples from the source and transformed target tables.
+
+## Transformation rules
+
+- Column names are trimmed, lowercased, and spaces are replaced with underscores.
+- Numeric age, tumor size, and survival-month fields are converted safely.
+- Text fields are trimmed and normalized to uppercase.
+- Age groups are derived as YOUNG, MIDDLE, and SENIOR.
+- The example high-risk flag is set when tumor size exceeds 20 or age exceeds 60. This is a simple project rule, not a clinical risk model.
+- Duplicate rows are removed within each chunk.
+
+## Tests
+
+```bash
+cd task
+python -m pip install pytest
+python -m pytest -q
+```
+
+Tests use in-memory SQLite and do not connect to real MySQL or PostgreSQL services.
+
+## Security
+
+Database URLs are read from environment variables. The old hardcoded MySQL and PostgreSQL credentials in previous source versions must be rotated; removing them from the current files does not remove them from Git history.
