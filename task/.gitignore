@@ -1,10 +1,23 @@
-# Python-generated files
+# Python environments and generated files
+.venv/
+venv/
+env/
 __pycache__/
-*.py[oc]
+*.py[cod]
+.pytest_cache/
 build/
 dist/
-wheels/
-*.egg-info
+*.egg-info/
 
-# Virtual environments
-.venv
+# Local secrets and data
+.env
+.env.*
+!.env.example
+data/
+*.csv
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
