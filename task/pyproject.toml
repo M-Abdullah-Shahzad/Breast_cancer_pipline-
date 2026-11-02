@@ -1,7 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "task"
-version = "0.1.0"
-description = "Add your description here"
+name = "breast-cancer-etl"
+version = "1.0.0"
+description = "Chunked MySQL to PostgreSQL ETL for a breast-cancer dataset."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pandas>=2.2,<4",
+    "numpy>=1.26,<3",
+    "SQLAlchemy>=2.0,<3",
+    "PyMySQL>=1.1,<2",
+    "psycopg2-binary>=2.9,<3",
+    "python-dotenv>=1.0,<2",
+    "tabulate>=0.9,<1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9"]
+
+[tool.setuptools]
+py-modules = ["config", "main", "pagination", "transform", "load", "test", "etl_pipeline"]
