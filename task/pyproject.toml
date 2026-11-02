@@ -20,3 +20,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
+
+[tool.setuptools]
+py-modules = ["config", "main", "pagination", "transform", "load", "test", "etl_pipeline"]
